@@ -68,9 +68,8 @@ def check_orgchart(org_chart_url_id):
         og = download_orgchart(orgchart["url"])
     except DownloadError as e:
         report_error(orgchart["id"], e)
-        continue
+        return
     if og and not orgchart_exists(og, orgchart["orgchartDocuments"]["edges"]):
-
         save_orgchart(orgchart["id"], og, hash(og))
     else:
         logger.info("already in DB")
