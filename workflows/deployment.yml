@@ -1,0 +1,48 @@
+name: Deploy main branch
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x]
+        python-version: [3.8]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: install poetry
+      run: pip install poetry
+    - name: install serverless
+      run: npm install -g serverless
+    - name: serverless install plugins
+      run: serverless plugin install -n serverless-python-requirements
+    - name: deploy
+      run: |
+        serverless config credentials --provider aws --key $AWS_ACCESS_KEY_ID --secret $AWS_SECRET_ACCESS_KEY
+        sls create_domain
+        sls deploy
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        CLIENT_ID: ${{ secrets.CLIENT_ID }}
+        CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+        SERVICE_DOMAIN: ${{ secrets.SERVICE_DOMAIN }}
+        ORGCHART_CRAWLER_SNS_TOPIC: ${{ secrets.ORGCHART_CRAWLER_SNS_TOPIC }}
+        LAMBDA_EXECUTION_ROLE_ARN: ${{ secrets.LAMBDA_EXECUTION_ROLE_ARN }}
+        DOMAIN: ${{ secrets.DOMAIN }}
+    - name: Create Sentry release
+      uses: getsentry/action-release@v1
+      env:
+        SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+        SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+      with:
+        environment: production
