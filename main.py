@@ -1,16 +1,23 @@
 import hashlib
 import logging
 import os
+import uuid
 from io import BytesIO
 
 from utils import get_client
 
 import pdfplumber
 from pdfminer.pdfparser import PDFSyntaxError
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 import requests
-from queries import ORG_CHART_URLS_QUERY, ORG_CHART_CREATE_ERROR
+from queries import (
+    ORG_CHART_URLS_QUERY,
+    ORG_CHART_CREATE_ERROR,
+    ORG_CHART_CREATE,
+    ORG_CHART_URL_QUERY,
+)
 
 USER_AGENT = "strukturen.bund.dev crawler (crawler.beta.strukturen.bund.dev)"
 CONTACT = "kontakt@bund.dev"
@@ -24,6 +31,12 @@ DOMAIN = os.getenv("SERVICE_DOMAIN")
 ORGCHART_CRAWLER_SNS_TOPIC = os.getenv("ORGCHART_CRAWLER_SNS_TOPIC", None)
 
 
+def hash(document):
+    document.seek(0)
+    m = hashlib.md5()
+    m.update(document.read())
+    return str(m.hexdigest())
+
 
 def check_all_orgcharts():
     client = get_client(DOMAIN, CLIENT_ID, CLIENT_SECRET)
@@ -36,44 +49,69 @@ def check_all_orgcharts():
         except DownloadError as e:
             report_error(orgchart["node"]["id"], e)
             continue
-        if og and not orgchart_exists(og, orgchart["node"]["orgchartDocuments"]["edges"]):
-            save_orgchart(orgchart["node"]["id"], og)
+        if og and not orgchart_exists(
+            og, orgchart["node"]["orgchartDocuments"]["edges"]
+        ):
+
+            save_orgchart(orgchart["node"]["id"], og, hash(og))
         else:
-            print("already in DB")
+            logger.info("already in DB")
 
 
-def check_orgchart(orgchart_url_id):
-    pass
+def check_orgchart(org_chart_url_id):
+    client = get_client(DOMAIN, CLIENT_ID, CLIENT_SECRET)
+    orgchart = client.execute(
+        ORG_CHART_URL_QUERY, variable_values={"id": org_chart_url_id}
+    )
+    og = None
+    try:
+        og = download_orgchart(orgchart["url"])
+    except DownloadError as e:
+        report_error(orgchart["id"], e)
+        continue
+    if og and not orgchart_exists(og, orgchart["orgchartDocuments"]["edges"]):
+
+        save_orgchart(orgchart["id"], og, hash(og))
+    else:
+        logger.info("already in DB")
 
 
 def report_error(orgchart_url_id, message):
     logger.error(message)
     client = get_client(DOMAIN, CLIENT_ID, CLIENT_SECRET)
-    client.execute(ORG_CHART_CREATE_ERROR, variable_values={"message": str(message),
-                                                            "orgChartUrlId": orgchart_url_id})
+    client.execute(
+        ORG_CHART_CREATE_ERROR,
+        variable_values={"message": str(message), "orgChartUrlId": orgchart_url_id},
+    )
+
 
 def orgchart_exists(document, stored_orgcharts):
-    m = hashlib.md5()
-    m.update(document.read())
-
-    if str(m.hexdigest()) in [o["node"]["documentHash"] for o in stored_orgcharts]:
+    if hash(document) in [o["node"]["documentHash"] for o in stored_orgcharts]:
         return True
     return False
+
 
 def save_orgchart(orgchart_url_id, document, hash):
     logger.info("save orgchart")
     client = get_client(DOMAIN, CLIENT_ID, CLIENT_SECRET)
-    orgcharts = client.execute(ORG_CHART_CREATE_ERROR, variable_values={}, upload_files = True)
+    document.name = f"{str(uuid.uuid4())}.pdf"
+    client.execute(
+        ORG_CHART_CREATE,
+        variable_values={
+            "document": document,
+            "documentHash": hash,
+            "orgChartUrlId": orgchart_url_id,
+        },
+        upload_files=True,
+    )
+
 
 class DownloadError(Exception):
     pass
 
 
 def download_orgchart(orgchart_url):
-    headers = {
-        'User-Agent': USER_AGENT,
-        'From': CONTACT
-    }
+    headers = {"User-Agent": USER_AGENT, "From": CONTACT}
 
     blob = requests.get(orgchart_url, headers=headers)
     file_obj = BytesIO(blob.content)

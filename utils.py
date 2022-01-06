@@ -1,6 +1,7 @@
 import requests
 from gql import Client
 from gql.transport.requests import RequestsHTTPTransport
+from gql.transport.aiohttp import AIOHTTPTransport
 
 
 def get_jwt(domain, client_id, client_secret):
@@ -25,5 +26,6 @@ def get_client(domain, client_id, client_secret):
         url=f"{domain}/graphql",
         headers={"Authorization": f'Bearer {jwt["access_token"]}'},
     )
-    client = Client(transport=transport, fetch_schema_from_transport=True)
+
+    client = Client(transport=transport)
     return client
