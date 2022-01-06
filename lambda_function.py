@@ -24,5 +24,5 @@ def handler(event, context):
     """this service is currently sns only"""
     event = json.loads(event["Records"][0]["Sns"]["Message"])
     if event["action"] in SNS_ACTIONS_MAPPING:
-        asyncio.run(SNS_ACTIONS_MAPPING[event["action"]](**event["parameters"]))
+        SNS_ACTIONS_MAPPING[event["action"]](**event["parameters"])
     return {"ok": True, "message": "SNS Task executed successfully"}
