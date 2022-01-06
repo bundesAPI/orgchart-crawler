@@ -62,7 +62,7 @@ def check_orgchart(org_chart_url_id):
     client = get_client(DOMAIN, CLIENT_ID, CLIENT_SECRET)
     orgchart = client.execute(
         ORG_CHART_URL_QUERY, variable_values={"id": org_chart_url_id}
-    )
+    )["orgChartUrl"]
     og = None
     try:
         og = download_orgchart(orgchart["url"])
