@@ -4,7 +4,7 @@ import os
 
 import sentry_sdk
 
-from main import check_all_orgcharts
+from main import check_all_orgcharts, check_orgchart
 
 sentry_sdk.init(
     os.getenv("SENTRY_DSN", None),
@@ -16,7 +16,7 @@ sentry_sdk.init(
 
 SNS_ACTIONS_MAPPING = {
     "crawl-all-orgcharts": check_all_orgcharts,
-    "crawl-orgchart": check_all_orgcharts,
+    "crawl-orgchart": check_orgchart,
 }
 
 
