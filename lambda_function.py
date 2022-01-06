@@ -16,6 +16,7 @@ sentry_sdk.init(
 
 SNS_ACTIONS_MAPPING = {
     "crawl-all-orgcharts": check_all_orgcharts,
+    "crawl-orgchart": check_all_orgcharts,
 }
 
 

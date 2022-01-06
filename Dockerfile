@@ -1,8 +1,6 @@
 FROM public.ecr.aws/lambda/python:3.8
 
 COPY *.py ${LAMBDA_TASK_ROOT}/
-RUN ls
-COPY model-last/ ${LAMBDA_TASK_ROOT}/model-last/
 COPY pyproject.toml ${LAMBDA_TASK_ROOT}/
 COPY poetry.lock ${LAMBDA_TASK_ROOT}/
 RUN pip install poetry
