@@ -36,7 +36,7 @@ jobs:
         CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
         SERVICE_DOMAIN: ${{ secrets.SERVICE_DOMAIN }}
         ORGCHART_CRAWLER_SNS_TOPIC: ${{ secrets.ORGCHART_CRAWLER_SNS_TOPIC }}
-        LAMBDA_EXECUTION_ROLE_ARN: ${{ secrets.LAMBDA_EXECUTION_ROLE_ARN }}
+        IAM_ROLE: ${{ secrets.IAM_ROLE }}
         DOMAIN: ${{ secrets.DOMAIN }}
     - name: Create Sentry release
       uses: getsentry/action-release@v1
